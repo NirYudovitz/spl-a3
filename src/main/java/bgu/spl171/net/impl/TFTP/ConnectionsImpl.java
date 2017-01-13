@@ -47,6 +47,12 @@ public class ConnectionsImpl<T> implements Connections<T> {
         connectionsMap.remove(connectionId);
     }
 
+    public boolean isConnected(int connectionId){
+        if(connectionsMap.containsKey(connectionId)){
+            return true
+        }
+        return false;
+    }
     public void addConnection(int connectionId){
         connectionsMap.put(connectionId, connectionHandlerFactory.get());
     }

@@ -3,7 +3,7 @@ package bgu.spl171.net.impl.Packets;
 /**
  * Created by Nirdun on 9.1.2017.
  */
-public abstract class BasePacket {
+public class BasePacket {
     protected short opCode;
 
     public short getOpCode() {
