@@ -37,7 +37,7 @@ public class Reactor<T> implements Server<T> {
 
     @Override
     public void serve() {
-
+	selectorThread = Thread.currentThread();
         try (Selector selector = Selector.open();
                 ServerSocketChannel serverSock = ServerSocketChannel.open()) {
 
@@ -99,21 +99,22 @@ public class Reactor<T> implements Server<T> {
                 protocolFactory.get(),
                 clientChan,
                 this);
-
         clientChan.register(selector, SelectionKey.OP_READ, handler);
     }
 
     private void handleReadWrite(SelectionKey key) {
         NonBlockingConnectionHandler handler = (NonBlockingConnectionHandler) key.attachment();
+
         if (key.isReadable()) {
             Runnable task = handler.continueRead();
             if (task != null) {
                 pool.submit(handler, task);
             }
-        } else {
-            handler.continueWrite();
         }
 
+	    if (key.isValid() && key.isWritable()) {
+            handler.continueWrite();
+        }
     }
 
     private void runSelectionThreadTasks() {

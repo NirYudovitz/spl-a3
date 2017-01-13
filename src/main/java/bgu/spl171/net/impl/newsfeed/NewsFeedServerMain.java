@@ -10,8 +10,7 @@ public class NewsFeedServerMain {
         NewsFeed feed = new NewsFeed(); //one shared object
 
 // you can use any server... 
-//        Server.fixedThreadPool(
-//                8,
+//        Server.threadPerClient(
 //                7777, //port
 //                () -> new RemoteCommandInvocationProtocol<>(feed), //protocol factory
 //                ObjectEncoderDecoder::new //message encoder decoder factory
