@@ -3,6 +3,7 @@ package bgu.spl171.net.srv;
 import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.api.MessagingProtocol;
 import bgu.spl171.net.api.bidi.BidiMessagingProtocol;
+import bgu.spl171.net.impl.TFTP.BidiEncoderDecoder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -17,13 +18,13 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
     private static final ConcurrentLinkedQueue<ByteBuffer> BUFFER_POOL = new ConcurrentLinkedQueue<>();
 
     private final BidiMessagingProtocol<T> protocol;
-    private final MessageEncoderDecoder<T> encdec;
+    private final BidiEncoderDecoder encdec;
     private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
     private final SocketChannel chan;
     private final Reactor reactor;
 
     public NonBlockingConnectionHandler(
-            MessageEncoderDecoder<T> reader,
+            BidiEncoderDecoder reader,
             BidiMessagingProtocol<T> protocol,
             SocketChannel chan,
             Reactor reactor) {
@@ -119,16 +120,9 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
         BUFFER_POOL.add(buff);
     }
 
-<<<<<<< Updated upstream
     @Override
     public void send(T msg) {
         writeQueue.add(ByteBuffer.wrap(encdec.encode(msg)));
-        reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-=======
+        reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE);}
 
-    @Override
-    public void send(T msg) {
-
->>>>>>> Stashed changes
-    }
 }

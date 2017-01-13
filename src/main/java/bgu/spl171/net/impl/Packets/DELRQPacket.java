@@ -7,8 +7,9 @@ public class DELRQPacket extends BasePacket {
     String fileName;
     char endByte;
 
-    public DELRQPacket(){
+    public DELRQPacket(byte[] bytes){
         this.opCode=8;
+        bytyarr = bytes;
     }
 
     public String getFileName() {
@@ -25,5 +26,10 @@ public class DELRQPacket extends BasePacket {
 
     public void setEndByte(char endByte) {
         this.endByte = endByte;
+    }
+
+    @Override
+    public boolean haveEndByte(){
+        return true;
     }
 }

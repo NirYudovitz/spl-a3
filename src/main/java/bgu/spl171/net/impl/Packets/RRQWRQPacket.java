@@ -6,8 +6,9 @@ package bgu.spl171.net.impl.Packets;
 public class RRQWRQPacket extends BasePacket {
     String fileName;
     char endByte;
-    public RRQWRQPacket(short opCode){
-        this.opCode=opCode;
+
+    public RRQWRQPacket(byte[] bytes){
+        this.bytyarr=bytes;
 
     }
 
@@ -25,5 +26,10 @@ public class RRQWRQPacket extends BasePacket {
 
     public void setEndByte(char endByte) {
         this.endByte = endByte;
+    }
+
+    @Override
+    public boolean haveEndByte(){
+        return true;
     }
 }

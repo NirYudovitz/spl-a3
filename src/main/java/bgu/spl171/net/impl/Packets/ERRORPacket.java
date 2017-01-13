@@ -6,7 +6,7 @@ package bgu.spl171.net.impl.Packets;
 public class ERRORPacket extends BasePacket {
     private String ErrMsg;
     private short endByte;
-    private int errorType
+    private int errorType;
     private short ErrorCode;
 
     public ERRORPacket(int errorType) {
@@ -43,6 +43,11 @@ public class ERRORPacket extends BasePacket {
                 break;
 
         }
+    }
+
+    @Override
+    public boolean haveEndByte(){
+        return true;
     }
 
 
