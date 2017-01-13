@@ -20,7 +20,7 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     private static final Set<Integer> haveEndByte = new HashSet<Integer>(Arrays.asList(1, 2, 5, 7, 8, 9));
 
     public BidiEncoderDecoder() {
-        System.out.println("inside bidiencoderdecoder c-tor");
+        System.out.println("inside BidiEncoderDecoder c-tor");
         this.counterRead = 0;
         this.opCode = opCode;
         byteArr = new byte[1 << 10]; // todo size?
@@ -62,14 +62,14 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         BasePacket packet = null;
         switch (opCode) {
             case 1:
-                packet = new RRQWRQPacket(bytes);
+                packet = new RRQWRQPacket(bytes,opCode);
                 break;
             case 2:
-                packet = new RRQWRQPacket(bytes);
+                packet = new RRQWRQPacket(bytes,opCode);
                 break;
             case 5:
                 //todo maybe we don't need this case
-                packet = new ERRORPacket(0);
+                packet = new ERRORPacket((short) 0);
                 break;
             case 7:
                 packet = new LOGRQPacket(bytes);
@@ -135,7 +135,7 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         System.arraycopy(opCodeByte,0,bytes,0,opCodeByte.length);
         System.arraycopy(errorCode,0,bytes,opCodeByte.length, errorCode.length);
         System.arraycopy(errorMsg,0,bytes,errorCode.length + opCodeByte.length, errorMsg.length);
-        bytes[opCodeByte.length+errorCode.length+errorMsg.length]=0;
+        bytes[opCodeByte.length+errorCode.length+errorMsg.length]='0';
         //todo function to merge arrays.
 
         return bytes;
