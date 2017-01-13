@@ -3,14 +3,16 @@ package bgu.spl171.net.impl.TFTP;
 import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.impl.Packets.*;
 import com.sun.org.apache.bcel.internal.generic.NEW;
+import com.sun.tools.javac.util.ArrayUtils;
+import com.sun.tools.javac.util.ByteBuffer;
+import sun.jvm.hotspot.runtime.Bytes;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Created by Nirdun on 13.1.2017.
- */
+
+
 public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     private short opCode;
     private byte[] byteArr;
@@ -49,40 +51,38 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
             } else if (opCode == 3) {
                 //todo  data packet
             }
-        } else if (continueRead(nextByte)){
-            packet= createPacket(opCode,byteArr);
+        } else if (continueRead(nextByte)) {
+            packet = createPacket(opCode, byteArr);
         }
         return packet;
     }
 
 
-    public BasePacket createPacket(short opCode,byte[] bytes){
-        BasePacket packet=null;
-        switch (opCode){
+    public BasePacket createPacket(short opCode, byte[] bytes) {
+        BasePacket packet = null;
+        switch (opCode) {
             case 1:
-                packet= new RRQWRQPacket(bytes);
+                packet = new RRQWRQPacket(bytes);
                 break;
             case 2:
-                packet= new RRQWRQPacket(bytes);
+                packet = new RRQWRQPacket(bytes);
                 break;
             case 5:
                 //todo maybe we don't need this case
-                packet= new ERRORPacket(0);
+                packet = new ERRORPacket(0);
                 break;
             case 7:
-                packet= new LOGRQPacket(bytes);
+                packet = new LOGRQPacket(bytes);
                 break;
             case 8:
-                packet= new DELRQPacket(bytes);
+                packet = new DELRQPacket(bytes);
                 break;
             case 9:
-                packet= new BCASTPacket(bytes);
+                packet = new BCASTPacket(bytes);
                 break;
         }
         return packet;
     }
-
-
 
 
     //return true if finish reading
@@ -99,13 +99,59 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
 
     @Override
     public byte[] encode(BasePacket message) {
+        opCode = message.getOpCode();
+        switch (opCode) {
+            case 3:
+                //todo data
+                break;
+            case 4:
+                byteArr=encodeACK(message);
+                break;
+            case 5:
+                byteArr=encodeERROR((ERRORPacket)message);
+                break;
+            case 9:
 
+                break;
+        }
+        return byteArr;
     }
 
+    public byte[] encodeACK(BasePacket packet){
+        byte[] bytes=new byte[4];//todo size
+        byte[] opCodeByte=shortToBytes(opCode);
+        byte[] blockBytes=shortToBytes(((ACKPacket)packet).getBlockNum());
+
+        System.arraycopy(opCodeByte,0,bytes,0,opCodeByte.length);
+        System.arraycopy(blockBytes,0,bytes,opCodeByte.length, blockBytes.length);
+        return bytes;
+    }
+    public byte[] encodeERROR(ERRORPacket packet){
+        byte[] bytes=new byte[1000];//todo size
+        byte[] opCodeByte=shortToBytes(opCode);
+        byte[] errorCode=shortToBytes(packet.getErrorCode());
+        byte[] errorMsg=packet.getErrMsg().getBytes();
+
+        System.arraycopy(opCodeByte,0,bytes,0,opCodeByte.length);
+        System.arraycopy(errorCode,0,bytes,opCodeByte.length, errorCode.length);
+        System.arraycopy(errorMsg,0,bytes,errorCode.length + opCodeByte.length, errorMsg.length);
+        bytes[opCodeByte.length+errorCode.length+errorMsg.length]=0;
+        //todo function to merge arrays.
+
+        return bytes;
+    }
 
     public short getOpCode(byte[] byteArr) {
         short result = (short) ((byteArr[0] & 0xff) << 8);
         result += (short) (byteArr[1] & 0xff);
         return result;
+    }
+
+    public byte[] shortToBytes(short num)
+    {
+        byte[] bytesArr = new byte[2];
+        bytesArr[0] = (byte)((num >> 8) & 0xFF);
+        bytesArr[1] = (byte)(num & 0xFF);
+        return bytesArr;
     }
 }

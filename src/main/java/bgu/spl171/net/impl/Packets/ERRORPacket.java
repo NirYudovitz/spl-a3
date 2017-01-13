@@ -6,17 +6,16 @@ package bgu.spl171.net.impl.Packets;
 public class ERRORPacket extends BasePacket {
     private String ErrMsg;
     private short endByte;
-    private int errorType;
     private short ErrorCode;
 
-    public ERRORPacket(int errorType) {
+    public ERRORPacket(short errorType) {
         this.opCode = 5;
-        this.errorType = errorType;
+        this.ErrorCode = errorType;
         difineErrMsg();
     }
 
     private void difineErrMsg() {
-        switch (errorType) {
+        switch (ErrorCode) {
             case 0:
                 ErrMsg = "Not defined, see error message (if any).";
                 break;
@@ -46,9 +45,40 @@ public class ERRORPacket extends BasePacket {
     }
 
     @Override
-    public boolean haveEndByte(){
+    public boolean haveEndByte() {
         return true;
     }
 
 
+    public String getErrMsg() {
+        return ErrMsg;
+    }
+
+    public void setErrMsg(String errMsg) {
+        ErrMsg = errMsg;
+    }
+
+    public short getEndByte() {
+        return endByte;
+    }
+
+    public void setEndByte(short endByte) {
+        this.endByte = endByte;
+    }
+
+    public int getErrorType() {
+        return ErrorCode;
+    }
+
+    public void setErrorType(int errorType) {
+        this.ErrorCode = errorType;
+    }
+
+    public short getErrorCode() {
+        return ErrorCode;
+    }
+
+    public void setErrorCode(short errorCode) {
+        ErrorCode = errorCode;
+    }
 }
