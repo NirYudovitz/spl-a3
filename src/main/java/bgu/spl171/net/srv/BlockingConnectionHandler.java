@@ -7,6 +7,7 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+//TPC
 public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
 
     private final MessagingProtocol<T> protocol;
@@ -51,5 +52,19 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     public void close() throws IOException {
         connected = false;
         sock.close();
+    }
+
+    @Override
+    public void send(T msg) {
+        try (Socket sock = this.sock) { //just for automatic closing
+
+            out = new BufferedOutputStream(sock.getOutputStream());
+            out.write(encdec.encode(msg));
+            out.flush();
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
     }
 }

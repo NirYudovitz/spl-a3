@@ -9,7 +9,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
+//reactor
 public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
 
     private static final int BUFFER_ALLOCATION_SIZE = 1 << 13; //8k
@@ -116,4 +116,9 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
         BUFFER_POOL.add(buff);
     }
 
+    @Override
+    public void send(T msg) {
+        writeQueue.add(ByteBuffer.wrap(encdec.encode(msg)));
+        reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+    }
 }
