@@ -5,6 +5,11 @@ package bgu.spl171.net.impl.Packets;
  */
 public class DATAPacket extends BasePacket {
     short packetSize;
+    short blockNum;
     // field from zero to 512 bytes long.
     int data;
+
+    public DATAPacket(){
+        this.opCode=3;
+    }
 }

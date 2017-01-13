@@ -6,4 +6,24 @@ package bgu.spl171.net.impl.Packets;
 public class DELRQPacket extends BasePacket {
     String fileName;
     char endByte;
+
+    public DELRQPacket(){
+        this.opCode=8;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public char getEndByte() {
+        return endByte;
+    }
+
+    public void setEndByte(char endByte) {
+        this.endByte = endByte;
+    }
 }
