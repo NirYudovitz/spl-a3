@@ -12,7 +12,8 @@ public class BCASTPacket extends BasePacket {
 
     }
 
-    public String getFilename() {
+    //todo initiailize while getting bytes.
+    public String getFileName() {
         return Filename;
     }
 
