@@ -70,7 +70,7 @@ public class ERRORPacket extends BasePacket {
         return ErrorCode;
     }
 
-    public void setErrorType(int errorType) {
+    public void setErrorType(short errorType) {
         this.ErrorCode = errorType;
     }
 

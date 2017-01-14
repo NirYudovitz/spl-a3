@@ -20,13 +20,14 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
     boolean shuoldTerminate;
 
     public BaseProtocol(){
-        shuoldTerminate=false;
+
     }
 
     @Override
     public void start(int connectionId, Connections<BasePacket> connections) {
         this.connectionId=connectionId;
         this.connections=(ConnectionsImpl) connections;
+        shuoldTerminate=false;
 
     }
 
@@ -52,7 +53,7 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
                     connections.send(connectionId,new ACKPacket());
                 }else {
                     //todo specific error
-                    connections.send(connectionId,new ERRORPacket(7));
+                    connections.send(connectionId,new ERRORPacket((short) 7));
                 }
                 break;
             case 8:

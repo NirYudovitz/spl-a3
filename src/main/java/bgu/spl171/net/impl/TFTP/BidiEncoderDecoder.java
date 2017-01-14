@@ -12,9 +12,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-
 public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     private short opCode;
+    private int packetSize;
     private byte[] byteArr;
     private int counterRead;
     private static final Set<Integer> haveEndByte = new HashSet<Integer>(Arrays.asList(1, 2, 5, 7, 8, 9));
@@ -31,7 +31,8 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         byteArr[counterRead] = nextByte;
         counterRead++;
         BasePacket packet = null;
-        //handle size of bytearr
+
+        //handle size of byteArr
         if (counterRead == 2) {
             opCode = getOpCode(Arrays.copyOf(byteArr, 2));
 
@@ -49,27 +50,40 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
             if (opCode == 4) {
                 return new ACKPacket();
             } else if (opCode == 3) {
-                //todo  data packet
+                packet = createDataPacket();
             }
-        } else if (continueRead(nextByte)) {
+        } else if (!shouldContinueRead(nextByte)) {
             packet = createPacket(opCode, byteArr);
         }
         return packet;
     }
 
+    public DATAPacket createDataPacket() {
+        DATAPacket dPacket = null;
+
+        if (counterRead == 4) {
+            //size of data and first six bytes.
+            packetSize = bytesToShort(byteArr, 2) + 6;
+        } else if (counterRead == packetSize) {
+            //todo divide packet
+            dPacket = new DATAPacket(byteArr);
+        }
+
+        return dPacket;
+    }
 
     public BasePacket createPacket(short opCode, byte[] bytes) {
         BasePacket packet = null;
         switch (opCode) {
             case 1:
-                packet = new RRQWRQPacket(bytes,opCode);
+                packet = new RRQWRQPacket(bytes, opCode);
                 break;
             case 2:
-                packet = new RRQWRQPacket(bytes,opCode);
+                packet = new RRQWRQPacket(bytes, opCode);
                 break;
             case 5:
-                //todo maybe we don't need this case
-                packet = new ERRORPacket((short) 0);
+                int errorCode = bytesToShort(bytes, 2);
+                packet = new ERRORPacket((short) errorCode);
                 break;
             case 7:
                 packet = new LOGRQPacket(bytes);
@@ -80,21 +94,16 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
             case 9:
                 packet = new BCASTPacket(bytes);
                 break;
+            default:
+                System.out.println("Wrong OpCode");
         }
         return packet;
     }
 
 
-    //return true if finish reading
-    private boolean continueRead(byte nextByte) {
-        BasePacket packet = null;
-        if (nextByte != '0') {
-            byteArr[counterRead] = nextByte;
-            counterRead++;
-            return false;
-        }
-        return true;
-
+    //return true if finish byte-0 is reading
+    private boolean shouldContinueRead(byte nextByte) {
+        return (nextByte != '0');
     }
 
     @Override
@@ -102,43 +111,74 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         opCode = message.getOpCode();
         switch (opCode) {
             case 3:
-                //todo data
+                byteArr = encodeDataPacket((DATAPacket) message);
                 break;
             case 4:
-                byteArr=encodeACK(message);
+                byteArr = encodeACK((ACKPacket) message);
                 break;
             case 5:
-                byteArr=encodeERROR((ERRORPacket)message);
+                byteArr = encodeERROR((ERRORPacket) message);
                 break;
             case 9:
-
+                byteArr = encodeBCAST((BCASTPacket) message);
                 break;
+            default:
+                System.out.println("Wrong OpCode");
         }
         return byteArr;
     }
 
-    public byte[] encodeACK(BasePacket packet){
-        byte[] bytes=new byte[4];//todo size
-        byte[] opCodeByte=shortToBytes(opCode);
-        byte[] blockBytes=shortToBytes(((ACKPacket)packet).getBlockNum());
+    public byte[] encodeDataPacket(DATAPacket dpacket) {
+        short packetSize = dpacket.getPacketSize();
 
-        System.arraycopy(opCodeByte,0,bytes,0,opCodeByte.length);
-        System.arraycopy(blockBytes,0,bytes,opCodeByte.length, blockBytes.length);
-        return bytes;
+        //todo - check id bytes ok
+        System.out.println("size of data packet in encodeDataPacket fun : " + packetSize);
+        byte[] opCodeByte = shortToBytes(opCode);
+        byte[] packetSizeBytes = shortToBytes(packetSize);
+        byte[] blockNumberBytes = shortToBytes(dpacket.getBlockNum());
+        return mergeArrays(opCodeByte, packetSizeBytes, blockNumberBytes, dpacket.getData());
     }
-    public byte[] encodeERROR(ERRORPacket packet){
-        byte[] bytes=new byte[1000];//todo size
-        byte[] opCodeByte=shortToBytes(opCode);
-        byte[] errorCode=shortToBytes(packet.getErrorCode());
-        byte[] errorMsg=packet.getErrMsg().getBytes();
 
-        System.arraycopy(opCodeByte,0,bytes,0,opCodeByte.length);
-        System.arraycopy(errorCode,0,bytes,opCodeByte.length, errorCode.length);
-        System.arraycopy(errorMsg,0,bytes,errorCode.length + opCodeByte.length, errorMsg.length);
-        bytes[opCodeByte.length+errorCode.length+errorMsg.length]='0';
+    public byte[] encodeBCAST(BCASTPacket bpacket) {
+        byte[] fileadded= new  byte[]{'0'};
+
+        byte[] opCodeByte = shortToBytes(opCode);
+        if(bpacket.isFileAdded()){
+            fileadded[0]='1';
+        }
+        byte[] packetSizeBytes = shortToBytes(packetSize);
+        byte[] blockNumberBytes = shortToBytes(dpacket.getBlockNum());
+        return mergeArrays(opCodeByte, packetSizeBytes, blockNumberBytes, dpacket.getData());
+    }
+
+
+    public byte[] encodeACK(ACKPacket packet) {
+        byte[] opCodeByte = shortToBytes(opCode);
+        byte[] blockBytes = shortToBytes(packet.getBlockNum());
+
+        //todo delete comments
+//        System.arraycopy(opCodeByte, 0, bytes, 0, opCodeByte.length);
+//        System.arraycopy(blockBytes, 0, bytes, opCodeByte.length, blockBytes.length);
+        return mergeArrays(opCodeByte, blockBytes);
+    }
+
+    public byte[] encodeERROR(ERRORPacket packet) {
+        byte[] bytes = new byte[1000];//todo size
+        byte[] opCodeByte = shortToBytes(opCode);
+        byte[] errorCode = shortToBytes(packet.getErrorCode());
+        byte[] errorMsg = packet.getErrMsg().getBytes();
+
+        //adding end byte to the bytes array
+        byte[] endByte = new byte[]{'0'};
+        return mergeArrays(opCodeByte, errorCode, errorMsg, endByte);
+
+
+        //todo delete comments
+//        System.arraycopy(opCodeByte, 0, bytes, 0, opCodeByte.length);
+//        System.arraycopy(errorCode, 0, bytes, opCodeByte.length, errorCode.length);
+//        System.arraycopy(errorMsg, 0, bytes, errorCode.length + opCodeByte.length, errorMsg.length);
+//        bytes[opCodeByte.length + errorCode.length + errorMsg.length] = '0';
         //todo function to merge arrays.
-
-        return bytes;
     }
 
     public short getOpCode(byte[] byteArr) {
@@ -147,11 +187,49 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         return result;
     }
 
-    public byte[] shortToBytes(short num)
-    {
+    public byte[] shortToBytes(short num) {
         byte[] bytesArr = new byte[2];
-        bytesArr[0] = (byte)((num >> 8) & 0xFF);
-        bytesArr[1] = (byte)(num & 0xFF);
+        bytesArr[0] = (byte) ((num >> 8) & 0xFF);
+        bytesArr[1] = (byte) (num & 0xFF);
         return bytesArr;
     }
+
+
+    private short bytesToShort(byte[] byteArr, int startPos) {
+        System.out.println("inside byte to short- check");
+        short result = (short) ((byteArr[startPos] & 0xff) << 8);
+        result += (short) (byteArr[startPos + 1] & 0xff);
+        return result;
+    }
+
+
+    /**
+     * merge multiple byre arrays to one array.
+     *
+     * @param arrays is byte arrays.
+     * @return merged Array.
+     */
+    //todo check if private?
+    public static byte[] mergeArrays(byte[]... arrays) {
+        // Count the number of arrays passed for merging and the total size of resulting array
+        int arrCount = 0;
+        int count = 0;
+        for (byte[] array : arrays) {
+            arrCount++;
+            count += array.length;
+        }
+        System.out.println("Arrays passed for merging : " + arrCount);
+        System.out.println("Array size of resultig array : " + count);
+
+        // Create new array and copy all array contents
+        int start = 0;
+        byte[] mergedArray = new byte[count];
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, mergedArray, start, array.length);
+            start += array.length;
+        }
+        return mergedArray;
+    }
+
+
 }
