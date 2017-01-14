@@ -4,20 +4,21 @@ package bgu.spl171.net.impl.TFTP;
 import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.api.bidi.BidiMessagingProtocol;
 import bgu.spl171.net.api.bidi.Connections;
-import bgu.spl171.net.impl.Packets.ACKPacket;
-import bgu.spl171.net.impl.Packets.BasePacket;
-import bgu.spl171.net.impl.Packets.ERRORPacket;
-import bgu.spl171.net.impl.Packets.LOGRQPacket;
+import bgu.spl171.net.impl.Packets.*;
 import bgu.spl171.net.srv.BaseServer;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
-    MessageEncoderDecoder messageEncoderDecoder;
-    ConnectionsImpl<BasePacket> connections;
-    int connectionId;
-    boolean shuoldTerminate;
+    private MessageEncoderDecoder messageEncoderDecoder;
+    private ConnectionsImpl<BasePacket> connections;
+    private int connectionId;
+    private boolean shuoldTerminate;
+    private HashMap<Short,DATAPacket> dataMap;
+
 
     public BaseProtocol(){
 
@@ -28,28 +29,36 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
         this.connectionId=connectionId;
         this.connections=(ConnectionsImpl) connections;
         shuoldTerminate=false;
+        ((ConnectionsImpl) connections).addConnection(connectionId);
+        dataMap=new HashMap<>();
 
     }
 
     @Override
     public void process(BasePacket message) {
-        byte[] byteMessage = messageEncoderDecoder.encode(message);
-        //todo check copy.
+
+        //todo delete comment.
        // short opCode = getOpCode(Arrays.copyOf(byteMessage, 2));
+
         short opCode = message.getOpCode();
         switch (opCode) {
             case 1:
+
                 break;
             case 2:
+                //Path path=
+                //check if file doesnt exist
+                connections.send(connectionId,new ACKPacket());
                 break;
             case 3:
+                writeData((DATAPacket) message);
                 break;
             case 6:
                 break;
             case 7:
-                boolean Connected=connections.isConnected(connectionId);
+                boolean Connected=connections.isLogedIn(connectionId);
                 if(!Connected){
-                    connections.addConnection(connectionId);
+                    connections.logIn(connectionId,((LOGRQPacket)message).getUserName());
                     connections.send(connectionId,new ACKPacket());
                 }else {
                     //todo specific error
@@ -64,6 +73,16 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
                 break;
             default:
 
+
+        }
+
+    }
+
+
+    public boolean writeData(DATAPacket dpacket){
+        if(dpacket.getPacketSize()==512){
+            dataMap.put(dpacket.getBlockNum(),dpacket);
+        }else{
 
         }
 

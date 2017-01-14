@@ -7,6 +7,7 @@ import com.sun.tools.javac.util.ArrayUtils;
 import com.sun.tools.javac.util.ByteBuffer;
 import sun.jvm.hotspot.runtime.Bytes;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -18,6 +19,9 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     private byte[] byteArr;
     private int counterRead;
     private static final Set<Integer> haveEndByte = new HashSet<Integer>(Arrays.asList(1, 2, 5, 7, 8, 9));
+
+    //adding end byte to the bytes array
+    private final byte[] endByte = new byte[]{'0'};
 
     public BidiEncoderDecoder() {
         System.out.println("inside BidiEncoderDecoder c-tor");
@@ -140,15 +144,22 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     }
 
     public byte[] encodeBCAST(BCASTPacket bpacket) {
-        byte[] fileadded= new  byte[]{'0'};
+        byte[] fileadded = new byte[1];
+
 
         byte[] opCodeByte = shortToBytes(opCode);
-        if(bpacket.isFileAdded()){
-            fileadded[0]='1';
+        ////todo check true false
+        fileadded[0] = bpacket.isFileAdded() ? (byte) '1' : (byte) '0';
+
+        byte[] fileNameBytes = null;
+        //todo utf8
+        try {
+            fileNameBytes = bpacket.getFilename().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        byte[] packetSizeBytes = shortToBytes(packetSize);
-        byte[] blockNumberBytes = shortToBytes(dpacket.getBlockNum());
-        return mergeArrays(opCodeByte, packetSizeBytes, blockNumberBytes, dpacket.getData());
+
+        return mergeArrays(opCodeByte, fileadded, fileNameBytes, endByte);
     }
 
 
@@ -163,13 +174,16 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     }
 
     public byte[] encodeERROR(ERRORPacket packet) {
-        byte[] bytes = new byte[1000];//todo size
         byte[] opCodeByte = shortToBytes(opCode);
         byte[] errorCode = shortToBytes(packet.getErrorCode());
-        byte[] errorMsg = packet.getErrMsg().getBytes();
+        byte[] errorMsg=null;
+        try {
+            errorMsg = packet.getErrMsg().getBytes("UTF-8");
+        }catch (UnsupportedEncodingException e){
+            e.printStackTrace();
+        }
 
-        //adding end byte to the bytes array
-        byte[] endByte = new byte[]{'0'};
+
         return mergeArrays(opCodeByte, errorCode, errorMsg, endByte);
 
 

@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private Map<Integer, ConnectionHandler<T>> connectionsMap;
+    private Map<Integer, String> logedInMap;
     private Supplier<ConnectionHandler<T>> connectionHandlerFactory;
 
     public ConnectionsImpl(Supplier<ConnectionHandler<T>> connectionHandlerFactory) {
@@ -21,11 +22,11 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     @Override
     public boolean send(int connectionId, T msg) {
-        if(connectionsMap.containsKey(connectionId)) {
+        if (connectionsMap.containsKey(connectionId)) {
             connectionsMap.get(connectionId).send(msg);
             return true;
         }
-        return  false;
+        return false;
     }
 
     @Override
@@ -38,22 +39,26 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public void disconnect(int connectionId) throws IOException {
+    public void disconnect(int connectionId) {
         try {
             connectionsMap.get(connectionId).close();
         } catch (IOException e) {
             e.printStackTrace();
         }
         connectionsMap.remove(connectionId);
+        logedInMap.remove(connectionId);
     }
 
-    public boolean isConnected(int connectionId){
-        if(connectionsMap.containsKey(connectionId)){
-            return true
-        }
-        return false;
+
+    public boolean isLogedIn(int connectionId) {
+        return logedInMap.containsKey(connectionId);
     }
-    public void addConnection(int connectionId){
+
+    public void addConnection(int connectionId) {
         connectionsMap.put(connectionId, connectionHandlerFactory.get());
+    }
+
+    public void logIn(int connectionId, String userName) {
+        logedInMap.put(connectionId, userName);
     }
 }
