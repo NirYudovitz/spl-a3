@@ -1,7 +1,9 @@
 package bgu.spl171.net.srv;
 
-import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.api.MessagingProtocol;
+import bgu.spl171.net.api.bidi.BidiMessagingProtocol;
+import bgu.spl171.net.impl.TFTP.BidiEncoderDecoder;
+
 import java.io.Closeable;
 import java.util.function.Supplier;
 
@@ -16,14 +18,14 @@ public interface Server<T> extends Closeable {
      *This function returns a new instance of a thread per client pattern server
      * @param port The port for the server socket
      * @param protocolFactory A factory that creats new MessagingProtocols
-     * @param encoderDecoderFactory A factory that creats new MessageEncoderDecoder
+     * @param encoderDecoderFactory A factory that creats new BidiEncoderDecoder
      * @param <T> The Message Object for the protocol
      * @return A new Thread per client server
      */
     public static <T> Server<T>  threadPerClient(
             int port,
-            Supplier<MessagingProtocol<T> > protocolFactory,
-            Supplier<MessageEncoderDecoder<T> > encoderDecoderFactory) {
+            Supplier<BidiMessagingProtocol<T>> protocolFactory,
+            Supplier<BidiEncoderDecoder<T>> encoderDecoderFactory) {
 
         return new BaseServer<T>(port, protocolFactory, encoderDecoderFactory) {
             @Override
@@ -39,15 +41,15 @@ public interface Server<T> extends Closeable {
      * @param nthreads Number of threads available for protocol processing
      * @param port The port for the server socket
      * @param protocolFactory A factory that creats new MessagingProtocols
-     * @param encoderDecoderFactory A factory that creats new MessageEncoderDecoder
+     * @param encoderDecoderFactory A factory that creats new BidiEncoderDecoder
      * @param <T> The Message Object for the protocol
      * @return A new reactor server
      */
     public static <T> Server<T> reactor(
             int nthreads,
             int port,
-            Supplier<MessagingProtocol<T>> protocolFactory,
-            Supplier<MessageEncoderDecoder<T>> encoderDecoderFactory) {
+            Supplier<BidiMessagingProtocol<T>> protocolFactory,
+            Supplier<BidiEncoderDecoder<T>> encoderDecoderFactory) {
         return new Reactor<T>(nthreads, port, protocolFactory, encoderDecoderFactory);
     }
 

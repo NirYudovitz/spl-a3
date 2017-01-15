@@ -13,6 +13,11 @@ public class ERRORPacket extends BasePacket {
         this.ErrorCode = errorType;
         difineErrMsg();
     }
+    public ERRORPacket(short errorType,String errMsg) {
+        this.opCode = 5;
+        this.ErrorCode = errorType;
+        this.ErrMsg=errMsg;
+    }
 
     private void difineErrMsg() {
         switch (ErrorCode) {
@@ -40,6 +45,8 @@ public class ERRORPacket extends BasePacket {
             case 7:
                 ErrMsg = "User already logged in – Login username already connected.";
                 break;
+            default:
+                ErrMsg="Wrong error code insert";
 
         }
     }

@@ -11,6 +11,10 @@ public class DELRQPacket extends BasePacket {
         this.opCode=8;
         bytyarr = bytes;
     }
+    public DELRQPacket(String fileName){
+        this.opCode=8;
+        this.fileName=fileName;
+    }
 
     public String getFileName() {
         return fileName;

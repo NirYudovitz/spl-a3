@@ -8,9 +8,8 @@ public class LOGRQPacket extends BasePacket {
     private String userName;
     char endByte;
 
-    public LOGRQPacket(byte[] bytes) {
+    public LOGRQPacket() {
         this.opCode=7;
-        bytyarr=bytes;
 
     }
 

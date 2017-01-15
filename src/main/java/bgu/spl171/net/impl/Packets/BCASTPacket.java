@@ -11,6 +11,18 @@ public class BCASTPacket extends BasePacket {
         bytyarr=bytes;
 
     }
+    public BCASTPacket(byte[] bytes,short addOrDelete,String filename) {
+        this.opCode=9;
+        this.bytyarr=bytes;
+        this.fileAdded= addOrDelete==1 ? true : false;
+        this.Filename=filename;
+
+    }
+    public BCASTPacket(String filename) {
+        this.opCode=9;
+        this.Filename=filename;
+
+    }
 
     //todo initiailize while getting bytes.
     public String getFileName() {
@@ -27,5 +39,10 @@ public class BCASTPacket extends BasePacket {
 
     public void setFileAdded(boolean fileAdded) {
         this.fileAdded = fileAdded;
+    }
+
+    @Override
+    public boolean haveEndByte(){
+        return true;
     }
 }

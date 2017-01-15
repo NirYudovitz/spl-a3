@@ -7,9 +7,10 @@ public class RRQWRQPacket extends BasePacket {
     String fileName;
     char endByte;
 
-    public RRQWRQPacket(byte[] bytes,short opCode){
+    public RRQWRQPacket(byte[] bytes,short opCode,String fileName){
         this.opCode=opCode;
         this.bytyarr=bytes;
+        this.fileName=fileName;
 
     }
 

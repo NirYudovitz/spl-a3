@@ -8,12 +8,13 @@ import com.sun.tools.javac.util.ByteBuffer;
 import sun.jvm.hotspot.runtime.Bytes;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 
-public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
+public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> {
     private short opCode;
     private int packetSize;
     private byte[] byteArr;
@@ -21,13 +22,13 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     private static final Set<Integer> haveEndByte = new HashSet<Integer>(Arrays.asList(1, 2, 5, 7, 8, 9));
 
     //adding end byte to the bytes array
-    private final byte[] endByte = new byte[]{'0'};
+    private final byte[] endByte = new byte[]{0};
 
     public BidiEncoderDecoder() {
         System.out.println("inside BidiEncoderDecoder c-tor");
         this.counterRead = 0;
         this.opCode = opCode;
-        byteArr = new byte[1 << 10]; // todo size?
+        byteArr = new byte[1024]; // todo size?
     }
 
     @Override
@@ -36,7 +37,8 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
         counterRead++;
         BasePacket packet = null;
 
-        //handle size of byteArr
+
+        //initialize op code.
         if (counterRead == 2) {
             opCode = getOpCode(Arrays.copyOf(byteArr, 2));
 
@@ -49,14 +51,13 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
             }
         }
 
-
-        if (!haveEndByte.contains(opCode) && opCode != 0) {
+        if (!haveEndByte.contains((int) opCode) && opCode != 0) {
             if (opCode == 4) {
                 return new ACKPacket();
             } else if (opCode == 3) {
                 packet = createDataPacket();
             }
-        } else if (!shouldContinueRead(nextByte)) {
+        } else if (!shouldContinueRead(nextByte) && opCode != 0) {
             packet = createPacket(opCode, byteArr);
         }
         return packet;
@@ -64,13 +65,15 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
 
     public DATAPacket createDataPacket() {
         DATAPacket dPacket = null;
+        // make a one bigger
+
 
         if (counterRead == 4) {
             //size of data and first six bytes.
-            packetSize = bytesToShort(byteArr, 2) + 6;
+            packetSize = bytesToShort(byteArr) + 6;
         } else if (counterRead == packetSize) {
             //todo divide packet
-            dPacket = new DATAPacket(byteArr);
+            dPacket = new DATAPacket(Arrays.copyOf(byteArr, packetSize));
         }
 
         return dPacket;
@@ -79,24 +82,42 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     public BasePacket createPacket(short opCode, byte[] bytes) {
         BasePacket packet = null;
         switch (opCode) {
+            //Read request.
             case 1:
-                packet = new RRQWRQPacket(bytes, opCode);
+                String fileNameWRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                packet = new RRQWRQPacket(bytes, opCode,fileNameWRQ);
+                String fileName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                ((RRQWRQPacket) (packet)).setFileName(fileName);
+
+
                 break;
+            //Write request
             case 2:
-                packet = new RRQWRQPacket(bytes, opCode);
+                String fileNameRRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                packet = new RRQWRQPacket(bytes, opCode,fileNameRRQ);
                 break;
+            //Error request.
             case 5:
-                int errorCode = bytesToShort(bytes, 2);
+                //todo - check if insert err msg different from value code optional
+                int errorCode = bytesToShort(Arrays.copyOfRange(bytes,2,4));
                 packet = new ERRORPacket((short) errorCode);
                 break;
+            //Login request
             case 7:
-                packet = new LOGRQPacket(bytes);
+                packet = new LOGRQPacket();
+                String userName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
+                ((LOGRQPacket) (packet)).setUserName(userName);
+
                 break;
+            //Delete request
             case 8:
-                packet = new DELRQPacket(bytes);
+                String fileNameDelrq = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                packet = new DELRQPacket(fileNameDelrq);
                 break;
+            //Broadcast request
             case 9:
-                packet = new BCASTPacket(bytes);
+                String fileNameBcast = bytesArrToString((Arrays.copyOfRange(bytes, 3, counterRead-1)));
+                packet = new BCASTPacket(bytes, (short) bytes[2],fileNameBcast);
                 break;
             default:
                 System.out.println("Wrong OpCode");
@@ -105,15 +126,23 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     }
 
 
+    public String bytesArrToString(byte[] bytes) {
+        //notice that we explicitly requesting that the string will be decoded from UTF-8
+        //this is not actually required as it is the default encoding in java.
+        String result = new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
+        return result;
+    }
+
     //return true if finish byte-0 is reading
     private boolean shouldContinueRead(byte nextByte) {
-        return (nextByte != '0');
+        return (nextByte != 0);
     }
 
     @Override
     public byte[] encode(BasePacket message) {
         opCode = message.getOpCode();
         switch (opCode) {
+            //todo : should be more packets? example DELRQ ?
             case 3:
                 byteArr = encodeDataPacket((DATAPacket) message);
                 break;
@@ -149,12 +178,12 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
 
         byte[] opCodeByte = shortToBytes(opCode);
         ////todo check true false
-        fileadded[0] = bpacket.isFileAdded() ? (byte) '1' : (byte) '0';
+        fileadded[0] = bpacket.isFileAdded() ? (byte) 1 : (byte) 0;
 
         byte[] fileNameBytes = null;
         //todo utf8
         try {
-            fileNameBytes = bpacket.getFilename().getBytes("UTF-8");
+            fileNameBytes = bpacket.getFileName().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -176,10 +205,10 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     public byte[] encodeERROR(ERRORPacket packet) {
         byte[] opCodeByte = shortToBytes(opCode);
         byte[] errorCode = shortToBytes(packet.getErrorCode());
-        byte[] errorMsg=null;
+        byte[] errorMsg = null;
         try {
             errorMsg = packet.getErrMsg().getBytes("UTF-8");
-        }catch (UnsupportedEncodingException e){
+        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
@@ -209,10 +238,10 @@ public class BidiEncoderDecoder implements MessageEncoderDecoder<BasePacket> {
     }
 
 
-    private short bytesToShort(byte[] byteArr, int startPos) {
-        System.out.println("inside byte to short- check");
-        short result = (short) ((byteArr[startPos] & 0xff) << 8);
-        result += (short) (byteArr[startPos + 1] & 0xff);
+    public short bytesToShort(byte[] byteArr)
+    {
+        short result = (short)((byteArr[0] & 0xff) << 8);
+        result += (short)(byteArr[1] & 0xff);
         return result;
     }
 

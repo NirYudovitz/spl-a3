@@ -1,7 +1,6 @@
 package bgu.spl171.net.impl.TFTP;
 
 
-import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.api.bidi.BidiMessagingProtocol;
 import bgu.spl171.net.api.bidi.Connections;
 import bgu.spl171.net.impl.Packets.*;
@@ -11,7 +10,7 @@ import java.nio.file.*;
 import java.util.HashMap;
 
 public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
-    private MessageEncoderDecoder messageEncoderDecoder;
+    private BidiEncoderDecoder BidiEncoderDecoder;
     private ConnectionsImpl<BasePacket> connections;
     private int connectionId;
     private boolean shuoldTerminate;
@@ -19,6 +18,7 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
     private String fileName;
     private File file;
     private boolean shouldSendMoreData;
+    private boolean logedIn;
 
 
     public BaseProtocol() {
@@ -33,97 +33,99 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
         ((ConnectionsImpl) connections).addConnection(connectionId);
         dataMap = new HashMap<>();
         shouldSendMoreData = false;
+        this.logedIn = false;
     }
 
     @Override
     public void process(BasePacket message) {
 
-        //todo delete comment.
-        // short opCode = getOpCode(Arrays.copyOf(byteMessage, 2));
-
+        logedIn = connections.isLogedIn(connectionId);
         short opCode = message.getOpCode();
-        switch (opCode) {
-            case 1:
-                String currentReadFileName = ((RRQWRQPacket) message).getFileName();
-                if (!fileExist(currentReadFileName)) {
-                    connections.send(connectionId, new ERRORPacket((short) 1));
-                } else {
-                    this.fileName = currentReadFileName;
-                    sendData(0);
-                }
-
-                break;
-            case 2:
-                //                Path path= Paths.get("//Files"+fileName);
-                //todo log in?
-                String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
-
-                if (fileExist(currentWriteFileName)) {
-                    connections.send(connectionId, new ERRORPacket((short) 5));
-                } else {
-                    this.fileName = currentWriteFileName;
-                    connections.addFile(fileName);
-                    connections.send(connectionId, new ACKPacket());
-                }
-                break;
-            case 3:
-                writeData((DATAPacket) message);
-                break;
-            case 4:
-                if (shouldSendMoreData) {
-                    sendData(((ACKPacket) message).getBlockNum());
-                }
-                break;
-            case 6:
-                String files = connections.allCompletedFiles();
-                //todo case files is null
-                if (files != null) {
-                    try {
-                        DATAPacket dataPacket=new DATAPacket(files.getBytes("UTF-8"));
-                        dataPacket.setBlockNum((short) 1);
-                        connections.send(connectionId,dataPacket);
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                }
-                break;
-            case 7:
-                //todo already loged in??
-                boolean Connected = connections.isLogedIn(connectionId);
-                if (!Connected) {
-                    connections.logIn(connectionId, ((LOGRQPacket) message).getUserName());
-                    connections.send(connectionId, new ACKPacket());
-                } else {
-                    //todo specific error
-                    connections.send(connectionId, new ERRORPacket((short) 7));
-                }
-                break;
-            case 8:
-                //A DELRQ packet is used to request the deletion of a file in the server.
-                String currentFileNameDelete=((DELRQPacket)message).getFileName();
-                if (fileExist(currentFileNameDelete)){
-                    Path path= Paths.get("//Files"+fileName);
-                    connections.deleteFile(fileName);
-
-                    try {
-                        Files.delete(path);
-                    } catch (NoSuchFileException x) {
-                        System.err.format("%s: no such" + " file or directory%n", path);
-                    } catch (DirectoryNotEmptyException x) {
-                        System.err.format("%s not empty%n", path);
-                    } catch (IOException x) {
-                        // File permission problems are caught here.
-                        System.err.println(x);
-                    }
-                    broadCast(false);
-                }
-            case 10:
+        if (!logedIn) {
+            if (opCode == 7) {
+                connections.logIn(connectionId, ((LOGRQPacket) message).getUserName());
                 connections.send(connectionId, new ACKPacket());
-                connections.disconnect(connectionId);
-                break;
-            default:
+            } else {
+                connections.send(connectionId, new ERRORPacket((short) 7));
+            }
+        } else {
+            switch (opCode) {
+                case 1:
+                    String currentReadFileName = ((RRQWRQPacket) message).getFileName();
+                    if (!fileExist(currentReadFileName)) {
+                        connections.send(connectionId, new ERRORPacket((short) 1));
+                    } else {
+                        this.fileName = currentReadFileName;
+                        sendData(0);
+                    }
+
+                    break;
+                case 2:
+                    //                Path path= Paths.get("//Files"+fileName);
+                    //todo log in?
+                    String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
+
+                    if (fileExist(currentWriteFileName)) {
+                        connections.send(connectionId, new ERRORPacket((short) 5));
+                    } else {
+                        this.fileName = currentWriteFileName;
+                        connections.addFile(fileName);
+                        connections.send(connectionId, new ACKPacket());
+                    }
+                    break;
+                case 3:
+                    writeData((DATAPacket) message);
+                    break;
+                case 4:
+                    if (shouldSendMoreData) {
+                        sendData(((ACKPacket) message).getBlockNum());
+                    }
+                    break;
+                case 6:
+                    String files = connections.allCompletedFiles();
+                    //todo case files is null
+                    if (files != null) {
+                        try {
+                            DATAPacket dataPacket = new DATAPacket(files.getBytes("UTF-8"));
+                            dataPacket.setBlockNum((short) 1);
+                            connections.send(connectionId, dataPacket);
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    break;
+                case 7:
+                    //todo specific error for already logged in?
+                    connections.send(connectionId, new ERRORPacket((short) 7));
+                    break;
+                case 8:
+                    //A DELRQ packet is used to request the deletion of a file in the server.
+                    String currentFileNameDelete = ((DELRQPacket) message).getFileName();
+                    if (fileExist(currentFileNameDelete)) {
+                        Path path = Paths.get("//Files" + fileName);
+                        connections.deleteFile(fileName);
+
+                        try {
+                            Files.delete(path);
+                        } catch (NoSuchFileException x) {
+                            System.err.format("%s: no such" + " file or directory%n", path);
+                        } catch (DirectoryNotEmptyException x) {
+                            System.err.format("%s not empty%n", path);
+                        } catch (IOException x) {
+                            // File permission problems are caught here.
+                            System.err.println(x);
+                        }
+                        broadCast(false);
+                    }
+                case 10:
+                    connections.send(connectionId, new ACKPacket());
+                    connections.disconnect(connectionId);
+                    break;
+                default:
+                    System.out.println("wrong op code in  process");
 
 
+            }
         }
 
     }
@@ -206,7 +208,7 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
      *
      * @param add is true was added,false if need to delete file.
      */
-    private void broadCast(boolean add){
+    private void broadCast(boolean add) {
         try {
             byte[] filenamebytes = fileName.getBytes("UTF-8");
             BCASTPacket bcastPacket = new BCASTPacket(filenamebytes);
