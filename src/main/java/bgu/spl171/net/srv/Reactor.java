@@ -103,7 +103,7 @@ public class Reactor<T> implements Server<T> {
         int newId=connections.getConnectionId();
         BidiMessagingProtocol bidiMessagingProtocol=protocolFactory.get();
 
-        final NonBlockingConnectionHandler handler = new NonBlockingConnectionHandler(
+        final NonBlockingConnectionHandler<T> handler = new NonBlockingConnectionHandler(
                 (BidiEncoderDecoder) readerFactory.get(),
                 bidiMessagingProtocol,
                 clientChan,
