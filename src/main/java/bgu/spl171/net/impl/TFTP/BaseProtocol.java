@@ -9,8 +9,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.HashMap;
 
-public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
-    private BidiEncoderDecoder BidiEncoderDecoder;
+public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
     private ConnectionsImpl<BasePacket> connections;
     private int connectionId;
     private boolean shuoldTerminate;
@@ -30,39 +29,36 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
         this.connectionId = connectionId;
         this.connections = (ConnectionsImpl) connections;
         shuoldTerminate = false;
-        ((ConnectionsImpl) connections).addConnection(connectionId);
         dataMap = new HashMap<>();
         shouldSendMoreData = false;
         this.logedIn = false;
     }
 
+
+    public int getConnectionId(){
+        return this.connectionId;
+    }
     @Override
     public void process(BasePacket message) {
-
+        //handle conncetin id++
+        //handle logrq user name is already exist
         logedIn = connections.isLogedIn(connectionId);
         short opCode = message.getOpCode();
         if (!logedIn) {
             if (opCode == 7) {
-                connections.logIn(connectionId, ((LOGRQPacket) message).getUserName());
-                connections.send(connectionId, new ACKPacket());
+                if (!connections.isNameExist(((LOGRQPacket) (message)).getUserName())) {
+                    connections.logIn(connectionId, ((LOGRQPacket) message).getUserName());
+                    connections.send(connectionId, new ACKPacket());
+                } else {
+                    connections.send(connectionId, new ERRORPacket((short) 6,"user name is alredy exist"));
+                }
+
             } else {
-                connections.send(connectionId, new ERRORPacket((short) 7));
+                connections.send(connectionId, new ERRORPacket((short) 6));
             }
         } else {
             switch (opCode) {
                 case 1:
-                    String currentReadFileName = ((RRQWRQPacket) message).getFileName();
-                    if (!fileExist(currentReadFileName)) {
-                        connections.send(connectionId, new ERRORPacket((short) 1));
-                    } else {
-                        this.fileName = currentReadFileName;
-                        sendData(0);
-                    }
-
-                    break;
-                case 2:
-                    //                Path path= Paths.get("//Files"+fileName);
-                    //todo log in?
                     String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
 
                     if (fileExist(currentWriteFileName)) {
@@ -72,6 +68,21 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
                         connections.addFile(fileName);
                         connections.send(connectionId, new ACKPacket());
                     }
+
+                    break;
+                case 2:
+                    //RRQ
+                    //                Path path= Paths.get("//Files"+fileName);
+
+                    String currentReadFileName = ((RRQWRQPacket) message).getFileName();
+                    if (!fileExist(currentReadFileName)) {
+                        connections.send(connectionId, new ERRORPacket((short) 1));
+                    } else {
+                        this.fileName = currentReadFileName;
+                        sendData(0);
+                    }
+                    //todo log in?
+
                     break;
                 case 3:
                     writeData((DATAPacket) message);
@@ -169,8 +180,9 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
 
 
     private boolean fileExist(String currentFileName) {
-        file = new File("//Files/" + currentFileName);
-        return file.exists();
+//        file = new File("//Files/" + currentFileName);
+//        return file.exists();
+        return connections.isFileExist(currentFileName);
 
     }
 
@@ -230,4 +242,6 @@ public class BaseProtocol implements BidiMessagingProtocol<BasePacket> {
         result += (short) (byteArr[1] & 0xff);
         return result;
     }
+
+
 }

@@ -22,6 +22,7 @@ public class ERRORPacket extends BasePacket {
     private void difineErrMsg() {
         switch (ErrorCode) {
             case 0:
+                //todo ?
                 ErrMsg = "Not defined, see error message (if any).";
                 break;
             case 1:

@@ -31,6 +31,10 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         byteArr = new byte[1024]; // todo size?
     }
 
+
+
+
+
     @Override
     public BasePacket decodeNextByte(byte nextByte) {
         byteArr[counterRead] = nextByte;
@@ -104,9 +108,8 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
                 break;
             //Login request
             case 7:
-                packet = new LOGRQPacket();
                 String userName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
-                ((LOGRQPacket) (packet)).setUserName(userName);
+                packet=new LOGRQPacket(userName);
 
                 break;
             //Delete request
@@ -195,10 +198,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     public byte[] encodeACK(ACKPacket packet) {
         byte[] opCodeByte = shortToBytes(opCode);
         byte[] blockBytes = shortToBytes(packet.getBlockNum());
-
-        //todo delete comments
-//        System.arraycopy(opCodeByte, 0, bytes, 0, opCodeByte.length);
-//        System.arraycopy(blockBytes, 0, bytes, opCodeByte.length, blockBytes.length);
         return mergeArrays(opCodeByte, blockBytes);
     }
 

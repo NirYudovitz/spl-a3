@@ -3,6 +3,7 @@ package bgu.spl171.net.srv;
 import bgu.spl171.net.api.MessagingProtocol;
 import bgu.spl171.net.api.bidi.BidiMessagingProtocol;
 import bgu.spl171.net.impl.TFTP.BidiEncoderDecoder;
+import bgu.spl171.net.impl.TFTP.ConnectionsImpl;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,6 +22,7 @@ public class Reactor<T> implements Server<T> {
     private final Supplier<BidiEncoderDecoder<T>> readerFactory;
     private final ActorThreadPool pool;
     private Selector selector;
+    private final ConnectionsImpl<T> connections;
 
     private Thread selectorThread;
     private final ConcurrentLinkedQueue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
@@ -35,6 +37,7 @@ public class Reactor<T> implements Server<T> {
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.readerFactory = readerFactory;
+        connections=new ConnectionsImpl<T>();
     }
 
     @Override
@@ -94,16 +97,24 @@ public class Reactor<T> implements Server<T> {
 
 
     private void handleAccept(ServerSocketChannel serverChan, Selector selector) throws IOException {
+
         SocketChannel clientChan = serverChan.accept();
         clientChan.configureBlocking(false);
+        int newId=connections.getConnectionId();
+        BidiMessagingProtocol bidiMessagingProtocol=protocolFactory.get();
 
         final NonBlockingConnectionHandler handler = new NonBlockingConnectionHandler(
                 (BidiEncoderDecoder) readerFactory.get(),
-                protocolFactory.get(),
+                bidiMessagingProtocol,
                 clientChan,
-                this);
+                this,connections,newId);
 
         clientChan.register(selector, SelectionKey.OP_READ, handler);
+        pool.submit(handler,()->{
+            bidiMessagingProtocol.start(newId,connections);
+            connections.addConnection(newId,handler);
+
+        });
     }
 
     private void handleReadWrite(SelectionKey key) {

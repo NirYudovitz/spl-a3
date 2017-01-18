@@ -3,27 +3,46 @@ package bgu.spl171.net.impl.TFTP;
 import bgu.spl171.net.api.bidi.Connections;
 import bgu.spl171.net.srv.ConnectionHandler;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private Map<Integer, ConnectionHandler<T>> connectionsMap;
     private Map<Integer, String> logedInMap;
-    private Supplier<ConnectionHandler<T>> connectionHandlerFactory;
     private ConcurrentHashMap<String, Boolean> filesCompleted;
+    private static AtomicInteger CONNECTIONID;
 
-    public ConnectionsImpl(Supplier<ConnectionHandler<T>> connectionHandlerFactory) {
-        this.connectionHandlerFactory = connectionHandlerFactory;
+    public ConnectionsImpl() {
+        this.CONNECTIONID=new AtomicInteger(420);
         connectionsMap = new HashMap<>();
+        logedInMap = new HashMap<>();
         filesCompleted = new ConcurrentHashMap<>();
+        File dir=new File(".//Files//");
+        if(dir.isDirectory()){
+            for(File file:dir.listFiles()){
+                if(file.isFile()){
+                    filesCompleted.put(file.getName(),true);
+                }
+            }
+        }
+
+
     }
 
+    public boolean isFileExist(String name){
+        return filesCompleted.containsKey(name);
+    }
+    public static int getConnectionId(){
+        return CONNECTIONID.getAndIncrement();
+    }
     @Override
     public boolean send(int connectionId, T msg) {
         if (connectionsMap.containsKey(connectionId)) {
@@ -80,14 +99,16 @@ public class ConnectionsImpl<T> implements Connections<T> {
         connectionsMap.remove(connectionId);
         logedInMap.remove(connectionId);
     }
-
+    public boolean isNameExist(String name){
+        return logedInMap.containsValue(name);
+    }
 
     public boolean isLogedIn(int connectionId) {
         return logedInMap.containsKey(connectionId);
     }
 
-    public void addConnection(int connectionId) {
-        connectionsMap.put(connectionId, connectionHandlerFactory.get());
+    public void addConnection(int connectionId,ConnectionHandler<T> connectionHandler) {
+        connectionsMap.put(connectionId, connectionHandler);
     }
 
     public void logIn(int connectionId, String userName) {

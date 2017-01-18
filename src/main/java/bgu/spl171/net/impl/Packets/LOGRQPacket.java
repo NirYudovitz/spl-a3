@@ -12,6 +12,11 @@ public class LOGRQPacket extends BasePacket {
         this.opCode=7;
 
     }
+    public LOGRQPacket(String userName) {
+        this.opCode=7;
+        this.userName=userName;
+
+    }
 
     public String getUserName() {
         return userName;
