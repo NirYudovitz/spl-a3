@@ -7,6 +7,7 @@ import bgu.spl171.net.impl.Packets.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
@@ -35,9 +36,10 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
     }
 
 
-    public int getConnectionId(){
+    public int getConnectionId() {
         return this.connectionId;
     }
+
     @Override
     public void process(BasePacket message) {
         //handle conncetin id++
@@ -50,7 +52,7 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     connections.logIn(connectionId, ((LOGRQPacket) message).getUserName());
                     connections.send(connectionId, new ACKPacket());
                 } else {
-                    connections.send(connectionId, new ERRORPacket((short) 6,"user name is alredy exist"));
+                    connections.send(connectionId, new ERRORPacket((short) 6, "user name is alredy exist"));
                 }
 
             } else {
@@ -60,18 +62,17 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
             switch (opCode) {
                 case 1:
                     String currentReadFileName = ((RRQWRQPacket) message).getFileName();
-                    if (fileExist(currentReadFileName)) {
+                    if (!fileExist(currentReadFileName)) {
                         connections.send(connectionId, new ERRORPacket((short) 1));
                     } else {
                         this.fileName = currentReadFileName;
+                        file = new File("Files" + File.separator + fileName);
                         sendData(0);
                     }
                     //todo log in?
 
                     break;
                 case 2:
-                    //RRQ
-                    //                Path path= Paths.get("//Files"+fileName);
 
                     String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
 
@@ -84,14 +85,13 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     }
 
 
-
-
                     break;
                 case 3:
                     writeData((DATAPacket) message);
                     break;
                 case 4:
                     if (shouldSendMoreData) {
+                        System.out.println("got ACK :" + ((ACKPacket) message).getBlockNum());
                         sendData(((ACKPacket) message).getBlockNum());
                     }
                     break;
@@ -114,13 +114,17 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     break;
                 case 8:
                     //A DELRQ packet is used to request the deletion of a file in the server.
-                    String currentFileNameDelete = ((DELRQPacket) message).getFileName();
-                    if (fileExist(currentFileNameDelete)) {
-                        Path path = Paths.get("//Files" + fileName);
+//                    String currentFileNameDelete = ((DELRQPacket) message).getFileName();
+                    fileName = ((DELRQPacket) message).getFileName();
+                    if (fileExist(fileName)) {
+                        Path path = Paths.get("Files" + File.separator + fileName);
+//                        file= new File("src/main/java/Files/" + fileName);
                         connections.deleteFile(fileName);
 
                         try {
+                            System.out.println("before deleting");
                             Files.delete(path);
+                            System.out.println("success deleting");
                         } catch (NoSuchFileException x) {
                             System.err.format("%s: no such" + " file or directory%n", path);
                         } catch (DirectoryNotEmptyException x) {
@@ -130,7 +134,10 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                             System.err.println(x);
                         }
                         broadCast(false);
+                    } else {
+                        connections.send(connectionId, new ERRORPacket((short) 1));
                     }
+                    break;
                 case 10:
                     connections.send(connectionId, new ACKPacket());
                     connections.disconnect(connectionId);
@@ -146,24 +153,36 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 
 
     private void sendData(int numBlock) {
-        byte[] data = null;
-        long leftTosend = (file.length()) - ((numBlock) * 512);
-        if (leftTosend > 512) {
-            shouldSendMoreData = true;
-            data = new byte[512];
-        } else {
-            shouldSendMoreData = false;
-            data = new byte[(int) leftTosend];
-        }
+//        byte[] data = null;
+//        long leftTosend = (file.length()) - ((numBlock) * 512);
+//        if (leftTosend > 512) {
+//            dataBlockNum++;
+//            shouldSendMoreData = true;
+//            data = new byte[512];
+//        } else {
+//            shouldSendMoreData = false;
+//            dataBlockNum=0;
+//            data = new byte[(int) leftTosend];
+//        }
+
+
+        byte[] data = new byte[512];
         FileInputStream stream = null;
-        BufferedInputStream bufStream = null;
         try {
             stream = new FileInputStream(file);
-            bufStream = new BufferedInputStream(stream);
-            //todo delete comment
-//            bufStream.skip((int)(numBlock)*512);
             //add bytes to data array acording to array size.
-            bufStream.read(data, (numBlock) * 512, data.length);
+            stream.skip(numBlock * 512);
+            int countRead = stream.read(data, 0, 512);
+
+            if (countRead == -1) {
+                data = new byte[0];
+            } else if (countRead < 512) {
+                data = Arrays.copyOf(data, countRead);
+                shouldSendMoreData = false;
+
+            }else if(countRead==512){
+                shouldSendMoreData = true;
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -171,7 +190,6 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
         } finally {
             try {
                 stream.close();
-                bufStream.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -183,22 +201,25 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 
 
     private boolean fileExist(String currentFileName) {
-//        file = new File("//Files/" + currentFileName);
-//        return file.exists();
         return connections.isFileExist(currentFileName);
 
     }
 
     public void writeData(DATAPacket dpacket) {
         dataMap.put(dpacket.getBlockNum(), dpacket);
+        connections.send(connectionId, new ACKPacket(dpacket.getBlockNum()));
         if (dpacket.getPacketSize() != 512) {
             FileOutputStream stream = null;
             try {
-                stream = new FileOutputStream(file);
+                file = new File("Files" + File.separator + fileName);
+                stream = new FileOutputStream(file, true);
                 int lastBlock = dpacket.getBlockNum();
                 for (int i = 1; i <= lastBlock; i++) {
                     System.out.println("writing to file");
-                    stream.write(dataMap.get(i).getData());
+                    byte[] data = dataMap.get((short) i).getData();
+//                    int startFrom=(i-1)*512;
+//                    int dataSize=dataMap.get((short)i).getPacketSize();
+                    stream.write(data);
                 }
                 connections.completeFile(fileName);
                 broadCast(true);
@@ -211,10 +232,7 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     e.printStackTrace();
                 }
             }
-
-
         }
-        connections.send(connectionId, new ACKPacket(dpacket.getBlockNum()));
 
     }
 
@@ -224,14 +242,9 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
      * @param add is true was added,false if need to delete file.
      */
     private void broadCast(boolean add) {
-        try {
-            byte[] filenamebytes = fileName.getBytes("UTF-8");
-            BCASTPacket bcastPacket = new BCASTPacket(filenamebytes);
-            bcastPacket.setFileAdded(add);
-            connections.broadcast(bcastPacket);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        BCASTPacket bcastPacket = new BCASTPacket(fileName);
+        bcastPacket.setFileAdded(add);
+        connections.broadcast(bcastPacket);
 
     }
 

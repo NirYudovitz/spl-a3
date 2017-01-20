@@ -25,7 +25,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
         connectionsMap = new HashMap<>();
         logedInMap = new HashMap<>();
         filesCompleted = new ConcurrentHashMap<>();
-        File dir=new File(".//Files//");
+        File dir=new File("Files");
         if(dir.isDirectory()){
             for(File file:dir.listFiles()){
                 if(file.isFile()){
@@ -70,12 +70,12 @@ public class ConnectionsImpl<T> implements Connections<T> {
      * @return the files that completed as a string
      */
     public String allCompletedFiles(){
-        String files=null;
+        String files="";
         for (String key : filesCompleted.keySet()) {
             if(filesCompleted.get(key)){
                 files+=key+'\0';
             }
-            System.out.println("Key = " + key);
+            System.out.println("check print ,  Key = " + key);
         }
         return files;
     }

@@ -11,6 +11,7 @@ public class ERRORPacket extends BasePacket {
     public ERRORPacket(short errorType) {
         this.opCode = 5;
         this.ErrorCode = errorType;
+        //if not inserted error msg than initialize
         difineErrMsg();
     }
     public ERRORPacket(short errorType,String errMsg) {

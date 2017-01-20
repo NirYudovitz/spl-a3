@@ -61,9 +61,16 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
         if (!haveEndByte.contains((int) opCode) && opCode != 0) {
             if (opCode == 4) {
-                counterRead=0;
-                opCode=0;
-                return new ACKPacket();
+                if(counterRead==4){
+                    counterRead=0;
+                    opCode=0;
+                    byte[] blockNumArr=new byte[2];
+                    blockNumArr[0]=byteArr[2];
+                    blockNumArr[1]=byteArr[3];
+                    short blockNum=bytesToShort(blockNumArr);
+                    return new ACKPacket(blockNum);
+                }
+
             } else if (opCode == 3) {
                 packet = createDataPacket();
             }
@@ -84,10 +91,22 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
         if (counterRead == 4) {
             //size of data and first six bytes.
-            packetSize = bytesToShort(byteArr) + 6;
+            byte[] packetSizeArr=new byte[2];
+            packetSizeArr[0]=byteArr[2];
+            packetSizeArr[1]=byteArr[3];
+            packetSize = bytesToShort(packetSizeArr) + 6;
         } else if (counterRead == packetSize) {
             //todo divide packet
-            dPacket = new DATAPacket(Arrays.copyOf(byteArr, packetSize));
+            byte[] byteBlockeNumArr=new byte[2];
+            byteBlockeNumArr[0]=byteArr[4];
+            byteBlockeNumArr[1]=byteArr[5];
+            byte[] data =new byte[packetSize-6];
+            for(int i =0;i<packetSize-6;i++){
+                data[i]=byteArr[i+6];
+            }
+            short blocknum=bytesToShort(byteBlockeNumArr);
+
+            dPacket = new DATAPacket(blocknum,Arrays.copyOf(data, packetSize-6));
         }
 
         return dPacket;
@@ -148,7 +167,7 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
     //return true if finish byte-0 is reading
     private boolean shouldContinueRead(byte nextByte) {
-        return (nextByte != 0);
+        return (nextByte != '\0');
     }
 
     @Override
