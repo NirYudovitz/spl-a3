@@ -61,14 +61,13 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     @Override
     public void close() throws IOException {
-        connections.disconnect(connectionId);
         connected = false;
         sock.close();
     }
 
     @Override
     public void send(T msg) {
-        try (Socket sock = this.sock) { //just for automatic closing
+        try { //just for automatic closing
 
             out = new BufferedOutputStream(sock.getOutputStream());
             out.write(encdec.encode(msg));

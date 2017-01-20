@@ -3,6 +3,7 @@ package bgu.spl171.net.impl.TFTP;
 import bgu.spl171.net.api.MessageEncoderDecoder;
 import bgu.spl171.net.impl.Packets.*;
 
+
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -37,28 +38,41 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         counterRead++;
         BasePacket packet = null;
 
-
+        if(counterRead == 1){
+            opCode = 0;
+        }
         //initialize op code.
         if (counterRead == 2) {
             opCode = getOpCode(Arrays.copyOf(byteArr, 2));
 
             // directory listing
             if (opCode == 6) {
+                counterRead=0;
+                opCode=0;
                 return new DIRQPacket();
             } else if (opCode == 10) {
                 //disconnect
+                opCode=0;
+                counterRead=0;
+                System.out.println("creare sidc packet");
                 return new DISCPacket();
             }
         }
 
         if (!haveEndByte.contains((int) opCode) && opCode != 0) {
             if (opCode == 4) {
+                counterRead=0;
+                opCode=0;
                 return new ACKPacket();
             } else if (opCode == 3) {
                 packet = createDataPacket();
             }
         } else if (!shouldContinueRead(nextByte) && opCode != 0) {
             packet = createPacket(opCode, byteArr);
+        }
+        if(packet!=null){
+            System.out.println("reset counter reader ");
+            counterRead=0;
         }
         return packet;
     }
@@ -143,21 +157,18 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         switch (opCode) {
             //todo : should be more packets? example DELRQ ?
             case 3:
-                byteArr = encodeDataPacket((DATAPacket) message);
-                break;
+                return encodeDataPacket((DATAPacket) message);
             case 4:
-                byteArr = encodeACK((ACKPacket) message);
-                break;
+                return encodeACK((ACKPacket) message);
             case 5:
-                byteArr = encodeERROR((ERRORPacket) message);
-                break;
+                return  encodeERROR((ERRORPacket) message);
             case 9:
-                byteArr = encodeBCAST((BCASTPacket) message);
-                break;
+                return encodeBCAST((BCASTPacket) message);
+
             default:
                 System.out.println("Wrong OpCode");
+                return null;
         }
-        return byteArr;
     }
 
     public byte[] encodeDataPacket(DATAPacket dpacket) {

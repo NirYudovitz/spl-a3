@@ -59,6 +59,20 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
         } else {
             switch (opCode) {
                 case 1:
+                    String currentReadFileName = ((RRQWRQPacket) message).getFileName();
+                    if (fileExist(currentReadFileName)) {
+                        connections.send(connectionId, new ERRORPacket((short) 1));
+                    } else {
+                        this.fileName = currentReadFileName;
+                        sendData(0);
+                    }
+                    //todo log in?
+
+                    break;
+                case 2:
+                    //RRQ
+                    //                Path path= Paths.get("//Files"+fileName);
+
                     String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
 
                     if (fileExist(currentWriteFileName)) {
@@ -69,19 +83,8 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                         connections.send(connectionId, new ACKPacket());
                     }
 
-                    break;
-                case 2:
-                    //RRQ
-                    //                Path path= Paths.get("//Files"+fileName);
 
-                    String currentReadFileName = ((RRQWRQPacket) message).getFileName();
-                    if (!fileExist(currentReadFileName)) {
-                        connections.send(connectionId, new ERRORPacket((short) 1));
-                    } else {
-                        this.fileName = currentReadFileName;
-                        sendData(0);
-                    }
-                    //todo log in?
+
 
                     break;
                 case 3:
