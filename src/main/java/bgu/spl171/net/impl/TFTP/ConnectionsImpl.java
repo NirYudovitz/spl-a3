@@ -38,7 +38,18 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public boolean isFileExist(String name){
+        if(filesCompleted.containsKey(name)){
+            if(filesCompleted.get(name)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public boolean isFileExistORDurinUpload(String name){
         return filesCompleted.containsKey(name);
+
     }
     public static int getConnectionId(){
         return CONNECTIONID.getAndIncrement();

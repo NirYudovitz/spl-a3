@@ -73,10 +73,9 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 
                     break;
                 case 2:
-
                     String currentWriteFileName = ((RRQWRQPacket) message).getFileName();
 
-                    if (fileExist(currentWriteFileName)) {
+                    if (connections.isFileExistORDurinUpload(currentWriteFileName)) {
                         connections.send(connectionId, new ERRORPacket((short) 5));
                     } else {
                         this.fileName = currentWriteFileName;
@@ -153,18 +152,6 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 
 
     private void sendData(int numBlock) {
-//        byte[] data = null;
-//        long leftTosend = (file.length()) - ((numBlock) * 512);
-//        if (leftTosend > 512) {
-//            dataBlockNum++;
-//            shouldSendMoreData = true;
-//            data = new byte[512];
-//        } else {
-//            shouldSendMoreData = false;
-//            dataBlockNum=0;
-//            data = new byte[(int) leftTosend];
-//        }
-
 
         byte[] data = new byte[512];
         FileInputStream stream = null;
@@ -206,8 +193,9 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
     }
 
     public void writeData(DATAPacket dpacket) {
-        dataMap.put(dpacket.getBlockNum(), dpacket);
+//        dataMap.put(dpacket.getBlockNum(), dpacket);
         connections.send(connectionId, new ACKPacket(dpacket.getBlockNum()));
+
         if (dpacket.getPacketSize() != 512) {
             FileOutputStream stream = null;
             try {
@@ -216,10 +204,11 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                 int lastBlock = dpacket.getBlockNum();
                 for (int i = 1; i <= lastBlock; i++) {
                     System.out.println("writing to file");
-                    byte[] data = dataMap.get((short) i).getData();
+//                    byte[] data = dataMap.get((short) i).getData();
+                    byte[] data = dpacket.getData();
 //                    int startFrom=(i-1)*512;
 //                    int dataSize=dataMap.get((short)i).getPacketSize();
-                    stream.write(data);
+                    stream.write(data,0,dpacket.getPacketSize());
                 }
                 connections.completeFile(fileName);
                 broadCast(true);

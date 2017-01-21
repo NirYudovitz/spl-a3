@@ -29,16 +29,13 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     }
 
 
-
-
-
     @Override
     public BasePacket decodeNextByte(byte nextByte) {
         byteArr[counterRead] = nextByte;
         counterRead++;
         BasePacket packet = null;
 
-        if(counterRead == 1){
+        if (counterRead == 1) {
             opCode = 0;
         }
         //initialize op code.
@@ -47,13 +44,13 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
             // directory listing
             if (opCode == 6) {
-                counterRead=0;
-                opCode=0;
+                counterRead = 0;
+                opCode = 0;
                 return new DIRQPacket();
             } else if (opCode == 10) {
                 //disconnect
-                opCode=0;
-                counterRead=0;
+                opCode = 0;
+                counterRead = 0;
                 System.out.println("creare sidc packet");
                 return new DISCPacket();
             }
@@ -61,13 +58,13 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
         if (!haveEndByte.contains((int) opCode) && opCode != 0) {
             if (opCode == 4) {
-                if(counterRead==4){
-                    counterRead=0;
-                    opCode=0;
-                    byte[] blockNumArr=new byte[2];
-                    blockNumArr[0]=byteArr[2];
-                    blockNumArr[1]=byteArr[3];
-                    short blockNum=bytesToShort(blockNumArr);
+                if (counterRead == 4) {
+                    counterRead = 0;
+                    opCode = 0;
+                    byte[] blockNumArr = new byte[2];
+                    blockNumArr[0] = byteArr[2];
+                    blockNumArr[1] = byteArr[3];
+                    short blockNum = bytesToShort(blockNumArr);
                     return new ACKPacket(blockNum);
                 }
 
@@ -77,9 +74,9 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         } else if (!shouldContinueRead(nextByte) && opCode != 0) {
             packet = createPacket(opCode, byteArr);
         }
-        if(packet!=null){
+        if (packet != null) {
             System.out.println("reset counter reader ");
-            counterRead=0;
+            counterRead = 0;
         }
         return packet;
     }
@@ -91,22 +88,22 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
         if (counterRead == 4) {
             //size of data and first six bytes.
-            byte[] packetSizeArr=new byte[2];
-            packetSizeArr[0]=byteArr[2];
-            packetSizeArr[1]=byteArr[3];
+            byte[] packetSizeArr = new byte[2];
+            packetSizeArr[0] = byteArr[2];
+            packetSizeArr[1] = byteArr[3];
             packetSize = bytesToShort(packetSizeArr) + 6;
         } else if (counterRead == packetSize) {
             //todo divide packet
-            byte[] byteBlockeNumArr=new byte[2];
-            byteBlockeNumArr[0]=byteArr[4];
-            byteBlockeNumArr[1]=byteArr[5];
-            byte[] data =new byte[packetSize-6];
-            for(int i =0;i<packetSize-6;i++){
-                data[i]=byteArr[i+6];
+            byte[] byteBlockeNumArr = new byte[2];
+            byteBlockeNumArr[0] = byteArr[4];
+            byteBlockeNumArr[1] = byteArr[5];
+            byte[] data = new byte[packetSize - 6];
+            for (int i = 0; i < packetSize - 6; i++) {
+                data[i] = byteArr[i + 6];
             }
-            short blocknum=bytesToShort(byteBlockeNumArr);
+            short blocknum = bytesToShort(byteBlockeNumArr);
 
-            dPacket = new DATAPacket(blocknum,Arrays.copyOf(data, packetSize-6));
+            dPacket = new DATAPacket(blocknum, Arrays.copyOf(data, packetSize - 6));
         }
 
         return dPacket;
@@ -117,39 +114,39 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         switch (opCode) {
             //Read request.
             case 1:
-                String fileNameWRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
-                packet = new RRQWRQPacket(bytes, opCode,fileNameWRQ);
-                String fileName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                String fileNameWRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
+                packet = new RRQWRQPacket(bytes, opCode, fileNameWRQ);
+                String fileName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
                 ((RRQWRQPacket) (packet)).setFileName(fileName);
 
 
                 break;
             //Write request
             case 2:
-                String fileNameRRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
-                packet = new RRQWRQPacket(bytes, opCode,fileNameRRQ);
+                String fileNameRRQ = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
+                packet = new RRQWRQPacket(bytes, opCode, fileNameRRQ);
                 break;
             //Error request.
             case 5:
                 //todo - check if insert err msg different from value code optional
-                int errorCode = bytesToShort(Arrays.copyOfRange(bytes,2,4));
+                int errorCode = bytesToShort(Arrays.copyOfRange(bytes, 2, 4));
                 packet = new ERRORPacket((short) errorCode);
                 break;
             //Login request
             case 7:
                 String userName = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
-                packet=new LOGRQPacket(userName);
+                packet = new LOGRQPacket(userName);
 
                 break;
             //Delete request
             case 8:
-                String fileNameDelrq = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead-1)));
+                String fileNameDelrq = bytesArrToString((Arrays.copyOfRange(bytes, 2, counterRead - 1)));
                 packet = new DELRQPacket(fileNameDelrq);
                 break;
             //Broadcast request
             case 9:
-                String fileNameBcast = bytesArrToString((Arrays.copyOfRange(bytes, 3, counterRead-1)));
-                packet = new BCASTPacket(bytes, (short) bytes[2],fileNameBcast);
+                String fileNameBcast = bytesArrToString((Arrays.copyOfRange(bytes, 3, counterRead - 1)));
+                packet = new BCASTPacket(bytes, (short) bytes[2], fileNameBcast);
                 break;
             default:
                 System.out.println("Wrong OpCode");
@@ -180,7 +177,7 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
             case 4:
                 return encodeACK((ACKPacket) message);
             case 5:
-                return  encodeERROR((ERRORPacket) message);
+                return encodeERROR((ERRORPacket) message);
             case 9:
                 return encodeBCAST((BCASTPacket) message);
 
@@ -263,10 +260,9 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     }
 
 
-    public short bytesToShort(byte[] byteArr)
-    {
-        short result = (short)((byteArr[0] & 0xff) << 8);
-        result += (short)(byteArr[1] & 0xff);
+    public short bytesToShort(byte[] byteArr) {
+        short result = (short) ((byteArr[0] & 0xff) << 8);
+        result += (short) (byteArr[1] & 0xff);
         return result;
     }
 
