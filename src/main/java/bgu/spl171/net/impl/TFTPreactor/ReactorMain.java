@@ -11,6 +11,11 @@ public class ReactorMain {
             return;
         }
         int port = Integer.valueOf(args[0]);
-        Server.reactor(4, port, BidiProtocol::new, BidiEncoderDecoder::new);
+        Server.reactor(4,
+                port, //port
+                () -> new BidiProtocol(), //protocol factory
+                ()-> new BidiEncoderDecoder()//message encoder decoder factory
+        ).serve();
+
     }
 }

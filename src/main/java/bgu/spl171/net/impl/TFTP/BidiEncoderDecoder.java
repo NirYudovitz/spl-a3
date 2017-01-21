@@ -191,7 +191,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
         short packetSize = dpacket.getPacketSize();
 
         //todo - check id bytes ok
-        System.out.println("size of data packet in encodeDataPacket fun : " + packetSize);
         byte[] opCodeByte = shortToBytes(opCode);
         byte[] packetSizeBytes = shortToBytes(packetSize);
         byte[] blockNumberBytes = shortToBytes(dpacket.getBlockNum());
@@ -282,8 +281,8 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
             arrCount++;
             count += array.length;
         }
-        System.out.println("Arrays passed for merging : " + arrCount);
-        System.out.println("Array size of resultig array : " + count);
+//        System.out.println("Arrays passed for merging : " + arrCount);
+//        System.out.println("Array size of resultig array : " + count);
 
         // Create new array and copy all array contents
         int start = 0;

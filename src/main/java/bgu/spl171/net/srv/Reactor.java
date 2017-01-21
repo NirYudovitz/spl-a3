@@ -110,11 +110,8 @@ public class Reactor<T> implements Server<T> {
                 this,connections,newId);
 
         clientChan.register(selector, SelectionKey.OP_READ, handler);
-        pool.submit(handler,()->{
-            bidiMessagingProtocol.start(newId,connections);
-            connections.addConnection(newId,handler);
-
-        });
+        bidiMessagingProtocol.start(newId,connections);
+        connections.addConnection(newId,handler);
     }
 
     private void handleReadWrite(SelectionKey key) {

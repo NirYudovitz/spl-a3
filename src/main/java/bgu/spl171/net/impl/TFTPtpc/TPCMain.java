@@ -11,6 +11,11 @@ public class TPCMain {
             return;
         }
         int port = Integer.valueOf(args[0]);
-        Server.threadPerClient(port, BidiProtocol::new, BidiEncoderDecoder::new).serve();
+
+        Server.threadPerClient(
+                port, //port
+                () -> new BidiProtocol(), //protocol factory
+                ()-> new BidiEncoderDecoder()//message encoder decoder factory
+        ).serve();
     }
 }

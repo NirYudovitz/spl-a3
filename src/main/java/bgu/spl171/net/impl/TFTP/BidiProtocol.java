@@ -79,6 +79,7 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                         connections.send(connectionId, new ERRORPacket((short) 5));
                     } else {
                         this.fileName = currentWriteFileName;
+                        file = new File("Files" + File.separator + fileName);
                         connections.addFile(fileName);
                         connections.send(connectionId, new ACKPacket());
                     }
@@ -90,7 +91,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     break;
                 case 4:
                     if (shouldSendMoreData) {
-                        System.out.println("got ACK :" + ((ACKPacket) message).getBlockNum());
                         sendData(((ACKPacket) message).getBlockNum());
                     }
                     break;
@@ -140,6 +140,7 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                 case 10:
                     connections.send(connectionId, new ACKPacket());
                     connections.disconnect(connectionId);
+                    shuoldTerminate=true;
                     break;
                 default:
                     System.out.println("wrong op code in  process");
@@ -161,18 +162,19 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
             stream.skip(numBlock * 512);
             int countRead = stream.read(data, 0, 512);
 
-            if (countRead == -1) {
+            if (countRead <= 0) {
                 data = new byte[0];
             } else if (countRead < 512) {
                 data = Arrays.copyOf(data, countRead);
                 shouldSendMoreData = false;
 
-            }else if(countRead==512){
+            } else if (countRead == 512) {
                 shouldSendMoreData = true;
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            connections.send(connectionId,new ERRORPacket((short)2));
             e.printStackTrace();
         } finally {
             try {
@@ -196,34 +198,29 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 //        dataMap.put(dpacket.getBlockNum(), dpacket);
         connections.send(connectionId, new ACKPacket(dpacket.getBlockNum()));
 
-        if (dpacket.getPacketSize() != 512) {
-            FileOutputStream stream = null;
-            try {
-                file = new File("Files" + File.separator + fileName);
-                stream = new FileOutputStream(file, true);
-                int lastBlock = dpacket.getBlockNum();
-                for (int i = 1; i <= lastBlock; i++) {
-                    System.out.println("writing to file");
-//                    byte[] data = dataMap.get((short) i).getData();
-                    byte[] data = dpacket.getData();
-//                    int startFrom=(i-1)*512;
-//                    int dataSize=dataMap.get((short)i).getPacketSize();
-                    stream.write(data,0,dpacket.getPacketSize());
-                }
+        FileOutputStream stream = null;
+        try {
+            stream = new FileOutputStream(file, true);
+                System.out.println("writing to file");
+                byte[] data = dpacket.getData();
+                stream.write(data, 0, dpacket.getPacketSize());
+
+            if(dpacket.getPacketSize()<512){
                 connections.completeFile(fileName);
                 broadCast(true);
-            } catch (Exception e) {
+            }
+        } catch (Exception e) {
+//            e.printStackTrace();
+            connections.send(connectionId,new ERRORPacket((short)2));
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
-
     }
+
 
     /**
      * send broadcast message if delete/add file.

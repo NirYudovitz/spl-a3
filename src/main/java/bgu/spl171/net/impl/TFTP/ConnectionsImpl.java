@@ -25,6 +25,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
         connectionsMap = new HashMap<>();
         logedInMap = new HashMap<>();
         filesCompleted = new ConcurrentHashMap<>();
+
         File dir=new File("Files");
         if(dir.isDirectory()){
             for(File file:dir.listFiles()){
@@ -102,11 +103,11 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     @Override
     public void disconnect(int connectionId) {
-        try {
-            connectionsMap.get(connectionId).close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+////            connectionsMap.get(connectionId).close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         connectionsMap.remove(connectionId);
         logedInMap.remove(connectionId);
     }

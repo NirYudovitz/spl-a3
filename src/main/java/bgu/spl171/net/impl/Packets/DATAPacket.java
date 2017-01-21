@@ -40,7 +40,6 @@ public class DATAPacket extends BasePacket {
 
     public byte[] getData() {
         //todo - clone?
-        System.out.println("returning data without cloning- check");
         return data;
     }
 

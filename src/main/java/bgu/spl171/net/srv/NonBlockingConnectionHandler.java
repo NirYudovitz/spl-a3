@@ -58,7 +58,7 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
                         T nextMessage = encdec.decodeNextByte(buf.get());
                         if (nextMessage != null) {
                             protocol.process(nextMessage);
-                            // sagie more if? and (T)
+
                         }
                     }
                 } finally {
@@ -75,8 +75,9 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
 
     public void close() {
         try {
-            connections.disconnect(connectionId);
-            chan.close();
+            if(!isClosed()) {
+                chan.close();
+            }
         } catch (IOException ex) {
             ex.printStackTrace();
         }
