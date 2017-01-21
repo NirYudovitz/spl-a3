@@ -25,7 +25,6 @@ public class EchoClient {
                 BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()))) {
 
-            System.out.println("sending message to server");
             out.write(args[1]);
             out.newLine();
             out.flush();

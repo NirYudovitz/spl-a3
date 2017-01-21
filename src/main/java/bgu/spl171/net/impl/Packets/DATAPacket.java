@@ -39,7 +39,6 @@ public class DATAPacket extends BasePacket {
     }
 
     public byte[] getData() {
-        //todo - clone?
         return data;
     }
 

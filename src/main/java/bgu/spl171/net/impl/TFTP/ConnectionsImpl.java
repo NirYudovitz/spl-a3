@@ -64,7 +64,6 @@ public class ConnectionsImpl<T> implements Connections<T> {
         return false;
     }
 
-    //todo is file exist
     public void addFile(String fileName) {
         filesCompleted.put(fileName, false);
     }
@@ -87,7 +86,6 @@ public class ConnectionsImpl<T> implements Connections<T> {
             if(filesCompleted.get(key)){
                 files+=key+'\0';
             }
-            System.out.println("check print ,  Key = " + key);
         }
         return files;
     }
@@ -96,7 +94,6 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public void broadcast(T msg) {
         for (Integer id : logedInMap.keySet()) {
             send(id, msg);
-            System.out.println("id is: = " + id);
         }
 
     }

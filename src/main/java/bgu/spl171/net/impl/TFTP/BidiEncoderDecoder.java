@@ -22,10 +22,9 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     private final byte[] endByte = new byte[]{0};
 
     public BidiEncoderDecoder() {
-        System.out.println("inside BidiEncoderDecoder c-tor");
         this.counterRead = 0;
         this.opCode = opCode;
-        byteArr = new byte[1024]; // todo size?
+        byteArr = new byte[1024];
     }
 
 
@@ -51,7 +50,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
                 //disconnect
                 opCode = 0;
                 counterRead = 0;
-                System.out.println("creare sidc packet");
                 return new DISCPacket();
             }
         }
@@ -75,7 +73,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
             packet = createPacket(opCode, byteArr);
         }
         if (packet != null) {
-            System.out.println("reset counter reader ");
             counterRead = 0;
         }
         return packet;
@@ -93,7 +90,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
             packetSizeArr[1] = byteArr[3];
             packetSize = bytesToShort(packetSizeArr) + 6;
         } else if (counterRead == packetSize) {
-            //todo divide packet
             byte[] byteBlockeNumArr = new byte[2];
             byteBlockeNumArr[0] = byteArr[4];
             byteBlockeNumArr[1] = byteArr[5];
@@ -128,7 +124,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
                 break;
             //Error request.
             case 5:
-                //todo - check if insert err msg different from value code optional
                 int errorCode = bytesToShort(Arrays.copyOfRange(bytes, 2, 4));
                 packet = new ERRORPacket((short) errorCode);
                 break;
@@ -149,7 +144,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
                 packet = new BCASTPacket(bytes, (short) bytes[2], fileNameBcast);
                 break;
             default:
-                System.out.println("Wrong OpCode");
         }
         return packet;
     }
@@ -171,7 +165,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     public byte[] encode(BasePacket message) {
         opCode = message.getOpCode();
         switch (opCode) {
-            //todo : should be more packets? example DELRQ ?
             case 3:
                 return encodeDataPacket((DATAPacket) message);
             case 4:
@@ -182,7 +175,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
                 return encodeBCAST((BCASTPacket) message);
 
             default:
-                System.out.println("Wrong OpCode");
                 return null;
         }
     }
@@ -190,7 +182,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
     public byte[] encodeDataPacket(DATAPacket dpacket) {
         short packetSize = dpacket.getPacketSize();
 
-        //todo - check id bytes ok
         byte[] opCodeByte = shortToBytes(opCode);
         byte[] packetSizeBytes = shortToBytes(packetSize);
         byte[] blockNumberBytes = shortToBytes(dpacket.getBlockNum());
@@ -202,11 +193,9 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
 
         byte[] opCodeByte = shortToBytes(opCode);
-        ////todo check true false
         fileadded[0] = bpacket.isFileAdded() ? (byte) 1 : (byte) 0;
 
         byte[] fileNameBytes = null;
-        //todo utf8
         try {
             fileNameBytes = bpacket.getFileName().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -236,13 +225,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
 
         return mergeArrays(opCodeByte, errorCode, errorMsg, endByte);
 
-
-        //todo delete comments
-//        System.arraycopy(opCodeByte, 0, bytes, 0, opCodeByte.length);
-//        System.arraycopy(errorCode, 0, bytes, opCodeByte.length, errorCode.length);
-//        System.arraycopy(errorMsg, 0, bytes, errorCode.length + opCodeByte.length, errorMsg.length);
-//        bytes[opCodeByte.length + errorCode.length + errorMsg.length] = '0';
-        //todo function to merge arrays.
     }
 
     public short getOpCode(byte[] byteArr) {
@@ -272,7 +254,6 @@ public class BidiEncoderDecoder<T> implements MessageEncoderDecoder<BasePacket> 
      * @param arrays is byte arrays.
      * @return merged Array.
      */
-    //todo check if private?
     public static byte[] mergeArrays(byte[]... arrays) {
         // Count the number of arrays passed for merging and the total size of resulting array
         int arrCount = 0;

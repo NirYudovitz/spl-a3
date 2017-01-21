@@ -69,7 +69,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                         file = new File("Files" + File.separator + fileName);
                         sendData(0);
                     }
-                    //todo log in?
 
                     break;
                 case 2:
@@ -96,7 +95,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     break;
                 case 6:
                     String files = connections.allCompletedFiles();
-                    //todo case files is null
                     if (files != null) {
                         try {
                             DATAPacket dataPacket = new DATAPacket(files.getBytes("UTF-8"));
@@ -108,7 +106,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     }
                     break;
                 case 7:
-                    //todo specific error for already logged in?
                     connections.send(connectionId, new ERRORPacket((short) 7));
                     break;
                 case 8:
@@ -121,9 +118,7 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                         connections.deleteFile(fileName);
 
                         try {
-                            System.out.println("before deleting");
                             Files.delete(path);
-                            System.out.println("success deleting");
                         } catch (NoSuchFileException x) {
                             System.err.format("%s: no such" + " file or directory%n", path);
                         } catch (DirectoryNotEmptyException x) {
@@ -143,8 +138,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
                     shuoldTerminate=true;
                     break;
                 default:
-                    System.out.println("wrong op code in  process");
-
 
             }
         }
@@ -201,7 +194,6 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
         FileOutputStream stream = null;
         try {
             stream = new FileOutputStream(file, true);
-                System.out.println("writing to file");
                 byte[] data = dpacket.getData();
                 stream.write(data, 0, dpacket.getPacketSize());
 
