@@ -10,7 +10,7 @@ import java.nio.file.*;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
+public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
     private ConnectionsImpl<BasePacket> connections;
     private int connectionId;
     private boolean shuoldTerminate;
@@ -21,7 +21,7 @@ public class BaseProtocol<T> implements BidiMessagingProtocol<BasePacket> {
     private boolean logedIn;
 
 
-    public BaseProtocol() {
+    public BidiProtocol() {
 
     }
 

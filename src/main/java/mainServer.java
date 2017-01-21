@@ -1,8 +1,6 @@
 
-import bgu.spl171.net.impl.TFTP.BaseProtocol;
+import bgu.spl171.net.impl.TFTP.BidiProtocol;
 import bgu.spl171.net.impl.TFTP.BidiEncoderDecoder;
-import bgu.spl171.net.impl.rci.ObjectEncoderDecoder;
-import bgu.spl171.net.impl.rci.RemoteCommandInvocationProtocol;
 import bgu.spl171.net.srv.Server;
 
 public class mainServer {
@@ -27,7 +25,7 @@ public class mainServer {
 //        System.out.println("Thread Per Client server has being started on port:"+port);
         Server.threadPerClient(
                 7777, //port
-                () -> new BaseProtocol(), //protocol factory
+                () -> new BidiProtocol(), //protocol factory
                 ()-> new BidiEncoderDecoder()//message encoder decoder factory
         ).serve();
 
