@@ -157,6 +157,7 @@ public class BidiProtocol<T> implements BidiMessagingProtocol<BasePacket> {
 
             if (countRead <= 0) {
                 data = new byte[0];
+                shouldSendMoreData = false;
             } else if (countRead < 512) {
                 data = Arrays.copyOf(data, countRead);
                 shouldSendMoreData = false;
